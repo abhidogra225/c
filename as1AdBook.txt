@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# Address Book File
+ADDRESS_BOOK="address_book.txt"
+
+# Function to display menu
+function display_menu {
+    echo "Address Book Menu:"
+    echo "1. Create Address Book"
+    echo "2. View Address Book"
+    echo "3. Insert a Record"
+    echo "4. Delete a Record"
+    echo "5. Modify a Record"
+    echo "6. Exit"
+}
+
+# Function to create an address book
+function create_address_book {
+    touch "$ADDRESS_BOOK"
+    echo "Address book created."
+}
+
+# Function to view the address book
+function view_address_book {
+    if [[ -e $ADDRESS_BOOK ]]; then
+        if [[ -s $ADDRESS_BOOK ]]; then
+            cat "$ADDRESS_BOOK"
+        else
+            echo "Address book is empty."
+        fi
+    else
+        echo "Address book does not exist. Please create one first."
+    fi
+}
+
+# Function to insert a record
+function insert_record {
+    read -p "Enter name: " name
+    read -p "Enter phone number: " phone
+    read -p "Enter email: " email
+    echo "$name, $phone, $email" >> "$ADDRESS_BOOK"
+    echo "Record inserted."
+}
+
+# Function to delete a record
+function delete_record {
+    read -p "Enter the name of the record to delete: " name
+    if [[ -e $ADDRESS_BOOK && -s $ADDRESS_BOOK ]]; then
+        # Create a temporary file to store non-matching records
+        temp_file=$(mktemp)
+        found=false
+        
+        while IFS= read -r line; do
+            # Check if the line matches the name
+            if [[ "$line" == "$name, "* ]]; then
+                found=true
+            else
+                echo "$line" >> "$temp_file"
+            fi
+        done < "$ADDRESS_BOOK"
+
+        # Replace the original address book with the filtered records
+        mv "$temp_file" "$ADDRESS_BOOK"
+        
+        if $found; then
+            echo "Record deleted."
+        else
+            echo "Record not found."
+            rm "$temp_file"  # Clean up if no record was deleted
+        fi
+    else
+        echo "Address book is empty or does not exist. Please create one first."
+    fi
+}
+
+# Function to modify a record
+function modify_record {
+    read -p "Enter the name of the record to modify: " name
+    grep -q "$name" "$ADDRESS_BOOK"
+    if [[ $? -eq 0 ]]; then
+        echo "Current record:"
+        grep "$name" "$ADDRESS_BOOK"
+        read -p "Enter new name: " new_name
+        read -p "Enter new phone number: " new_phone
+        read -p "Enter new email: " new_email
+        sed -i "s/$name, .*/$new_name, $new_phone, $new_email/" "$ADDRESS_BOOK"
+        echo "Record modified."
+    else
+        echo "Record not found."
+    fi
+}
+
+# Main loop
+while true; do
+    display_menu
+    read -p "Select an option (1-6): " choice
+
+    case $choice in
+        1) create_address_book ;;
+        2) view_address_book ;;
+        3) insert_record ;;
+        4) delete_record ;;
+        5) modify_record ;;
+        6) echo "Exiting..."; exit 0 ;;
+        *) echo "Invalid option. Please try again." ;;
+    esac
+done

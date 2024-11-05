@@ -1,0 +1,79 @@
+// child
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    printf("Array in reverse order:\n");
+    for (int i = argc - 1; i > 0; i--) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+    return 0;
+}
+
+
+// parent
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+void sort(int *arr, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    printf("Enter the number of integers: ");
+    scanf("%d", &n);
+    
+    int *arr = (int *)malloc(n * sizeof(int));
+    printf("Enter %d integers:\n", n);
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    sort(arr, n);
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("Fork failed");
+        return 1;
+    }
+
+    if (pid == 0) {
+        // Child process
+        char *args[n + 1];
+        for (int i = 0; i < n; i++) {
+            args[i] = malloc(10 * sizeof(char));  // allocate memory for each argument
+            sprintf(args[i], "%d", arr[i]);  // convert int to string
+        }
+        args[n] = NULL;  // last argument must be NULL for execve
+
+        execve("./reverse_array", args, NULL);  // execve to replace child process
+        perror("execve failed");
+        exit(1);
+    } else {
+        // Parent process
+        wait(NULL);  // Wait for child process to finish
+        printf("Child process terminated.\n");
+    }
+
+    for (int i = 0; i < n; i++) {
+        free(args[i]);  // free allocated memory
+    }
+    free(arr);
+    return 0;
+}
+
+
+

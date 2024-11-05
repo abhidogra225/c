@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_PROCESSES 10
+#define MAX_RESOURCES 10
+
+int max[MAX_PROCESSES][MAX_RESOURCES];    // Maximum R that can be allocated to processes
+int allot[MAX_PROCESSES][MAX_RESOURCES];  // R allocated to processes
+int need[MAX_PROCESSES][MAX_RESOURCES];   // R needs of processes
+int avail[MAX_RESOURCES];                  // Available R
+
+// Function to calculate if the system is in a safe state
+bool isSafe(int processes[], int avail[], int max[][MAX_RESOURCES], int allot[][MAX_RESOURCES], int numProcesses, int numResources) {
+    int work[MAX_RESOURCES];
+    bool finish[MAX_PROCESSES] = {0};
+    int safeSeq[MAX_PROCESSES];
+    int count = 0;
+
+    // Initialize work array
+    for (int i = 0; i < numResources; i++)
+        work[i] = avail[i];
+
+    // Continue until all processes are finished
+    while (count < numProcesses) {
+        bool found = false;
+        for (int p = 0; p < numProcesses; p++) {
+            // Check if the process can finish
+            if (!finish[p]) {
+                bool canFinish = true;
+                for (int j = 0; j < numResources; j++) {
+                    if (need[p][j] > work[j]) {
+                        canFinish = false;
+                        break;
+                    }
+                }
+
+                // If it can finish, simulate the allocation of resources
+                if (canFinish) {
+                    for (int j = 0; j < numResources; j++)
+                        work[j] += allot[p][j];
+                    safeSeq[count++] = p;
+                    finish[p] = true;
+                    found = true;
+                }
+            }
+        }
+        // If no process could finish, return false
+        if (!found) {
+            printf("System is not in a safe state\n");
+            return false;
+        }
+    }
+
+    // If we reach here, then the system is in a safe state
+    printf("System is in a safe state.\nSafe sequence is: ");
+    for (int i = 0; i < numProcesses; i++)
+        printf("%d ", safeSeq[i]);
+    printf("\n");
+    return true;
+}
+
+// Function to calculate the need of each process
+void calculateNeed(int numProcesses, int numResources) {
+    for (int i = 0; i < numProcesses; i++)
+        for (int j = 0; j < numResources; j++)
+            need[i][j] = max[i][j] - allot[i][j];
+}
+
+int main() {
+    int processes[MAX_PROCESSES], numProcesses, numResources;
+
+    // Input number of processes and resources
+    printf("Enter number of processes: ");
+    scanf("%d", &numProcesses);
+    printf("Enter number of resources: ");
+    scanf("%d", &numResources);
+
+    // Input maximum resources
+    printf("Enter Maximum R allocation matrix:\n");
+    for (int i = 0; i < numProcesses; i++) {
+        processes[i] = i; // Assign process number
+        for (int j = 0; j < numResources; j++)
+            scanf("%d", &max[i][j]);
+    }
+
+    // Input allocated resources
+    printf("Enter Allocation matrix:\n");
+    for (int i = 0; i < numProcesses; i++) {
+        for (int j = 0; j < numResources; j++)
+            scanf("%d", &allot[i][j]);
+    }
+
+    // Input available resources
+    printf("Enter Available resources:\n");
+    for (int i = 0; i < numResources; i++)
+        scanf("%d", &avail[i]);
+
+    // Calculate the need matrix
+    calculateNeed(numProcesses, numResources);
+
+    // Check system's safe state
+    isSafe(processes, avail, max, allot, numProcesses, numResources);
+
+    return 0;
+}

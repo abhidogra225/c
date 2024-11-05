@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define SIZE 8
+#define DISK_SIZE 200
+
+// Function to compare two integers (used for sorting)
+int compare(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+// Function to implement Shortest Seek Time First (SSTF)
+void SSTF(int arr[], int head) {
+    int seek_count = 0, distance, cur_track;
+    int completed[SIZE] = {0}; // Array to track completed requests
+
+    for (int i = 0; i < SIZE; i++) {
+        int min_distance = 9999; // Initialize minimum distance
+        int index = -1; // Index of the next track to service
+
+        // Find the nearest track
+        for (int j = 0; j < SIZE; j++) {
+            if (!completed[j]) {
+                distance = abs(arr[j] - head);
+                if (distance < min_distance) {
+                    min_distance = distance;
+                    index = j;
+                }
+            }
+        }
+
+        // Update the head and seek count
+        cur_track = arr[index];
+        seek_count += min_distance;
+        head = cur_track;
+        completed[index] = 1; // Mark this track as completed
+    }
+
+    printf("SSTF: Total number of seek operations = %d\n", seek_count);
+}
+
+// Function to implement SCAN disk scheduling
+void SCAN(int arr[], int head, char direction[]) {
+    int seek_count = 0, distance, cur_track;
+    int left[SIZE], right[SIZE];
+    int left_size = 0, right_size = 0;
+
+    // Splitting the requests into left and right vectors
+    for (int i = 0; i < SIZE; i++) {
+        if (arr[i] < head) {
+            left[left_size++] = arr[i];
+        } else {
+            right[right_size++] = arr[i];
+        }
+    }
+
+    // Sorting left and right arrays
+    qsort(left, left_size, sizeof(int), compare);
+    qsort(right, right_size, sizeof(int), compare);
+
+    // First service the requests on the side of the head
+    if (strcmp(direction, "left") == 0) {
+        // Service left requests
+        for (int i = left_size - 1; i >= 0; i--) {
+            cur_track = left[i];
+            distance = abs(cur_track - head);
+            seek_count += distance;
+            head = cur_track;
+        }
+        // Move to the end of the disk
+        seek_count += head; // Move head to the beginning (0)
+        head = 0;
+
+        // Now service the requests on the right side
+        for (int i = 0; i < right_size; i++) {
+            cur_track = right[i];
+            distance = abs(cur_track - head);
+            seek_count += distance;
+            head = cur_track;
+        }
+    } else {
+        // Service right requests
+        for (int i = 0; i < right_size; i++) {
+            cur_track = right[i];
+            distance = abs(cur_track - head);
+            seek_count += distance;
+            head = cur_track;
+        }
+        // Move to the end of the disk
+        seek_count += (DISK_SIZE - 1 - head); // Move head to the end (DISK_SIZE - 1)
+        head = DISK_SIZE - 1;
+
+        // Now service the requests on the left side
+        for (int i = left_size - 1; i >= 0; i--) {
+            cur_track = left[i];
+            distance = abs(cur_track - head);
+            seek_count += distance;
+            head = cur_track;
+        }
+    }
+
+    printf("SCAN: Total number of seek operations = %d\n", seek_count);
+}
+
+void CSCAN(int arr[], int head) {
+    int seek_count = 0, distance, cur_track;
+    int left[SIZE], right[SIZE];
+    int left_size = 0, right_size = 0;
+
+    // Appending end values which have to be visited
+    left[left_size++] = 0; // Left end
+    right[right_size++] = DISK_SIZE - 1; // Right end
+
+    // Splitting the requests into left and right vectors
+    for (int i = 0; i < SIZE; i++) {
+        if (arr[i] < head) {
+            left[left_size++] = arr[i];
+        } else {
+            right[right_size++] = arr[i];
+        }
+    }
+
+    // Sorting left and right arrays
+    qsort(left, left_size, sizeof(int), compare);
+    qsort(right, right_size, sizeof(int), compare);
+
+    // First service the requests on the right side of the head
+    for (int i = 0; i < right_size; i++) {
+        cur_track = right[i];
+        distance = abs(cur_track - head);
+        seek_count += distance;
+        head = cur_track;
+    }
+
+    // Once reached the right end, jump to the beginning
+    head = 0;
+    seek_count += (DISK_SIZE - 1); // Adding seek count for head returning to the beginning
+
+    // Now service the requests again which are left
+    for (int i = 0; i < left_size; i++) {
+        cur_track = left[i];
+        distance = abs(cur_track - head);
+        seek_count += distance;
+        head = cur_track;
+    }
+
+    printf("C-SCAN: Total number of seek operations = %d\n", seek_count);
+}
+
+// Driver code
+int main() {
+    // Request array
+    int arr[SIZE] = {176, 79, 34, 60, 92, 11, 41, 114};
+    int head = 50;
+
+    // Call each disk scheduling algorithm
+    SSTF(arr, head);
+    SCAN(arr, head, "left"); // Can be "left" or "right"
+    CSCAN(arr, head);
+
+    return 0;
+}
